@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Crear un Nuevo Pedido</title>
+
+    <link rel="stylesheet" type="text/css" href="../css/formOrders.css">
+
+</head>
+
+<body>
+    <header>
+        <h1>Crear un Nuevo Pedido</h1>
+    </header>
+
+    <form action="/orders" method="post" id="order-form">
+        <!-- Asegúrate de que la acción del formulario coincida con la ruta del endpoint -->
+        <h2>Información del Pedido</h2>
+        <label for="customer_id">Selecciona un Cliente:</label>
+        <select id="customer_id" name="customer_id" required>
+            <option value="">Selecciona un cliente</option> <!-- Opción por defecto -->
+            <% customers.forEach(function(customer) { %>
+                <option value="<%= customer.customer_id %>">
+                    <%= customer.first_name %>
+                        <%= customer.last_name %>
+                </option>
+                <% }); %>
+        </select>
+
+        <h2>Elementos del Pedido</h2>
+        <div id="order-items">
+            <div class="order-item">
+                <!-- Lista desplegable para seleccionar un producto -->
+                <label for="product_id">Selecciona un Producto:</label>
+                <select class="product-select" name="product_id" >
+                    <option value="">Selecciona un producto</option> <!-- Opción por defecto -->
+                    <% products.forEach(function(product) { %>
+                        <option value="<%= product.product_id %>" data-price="<%= product.price %>">
+                            <%= product.product_name %>
+                        </option>
+                        <% }); %>
+                </select>
+
+                <label for="quantity">Cantidad:</label>
+                <input class="quantity-input" type="number" name="quantity" >
+
+                <!-- Campo oculto para el precio del producto -->
+                <!-- Campo de entrada para el precio del producto (no editable) -->
+                <label for="price">Precio del Producto:</label>
+                <input class="price-input" type="number" name="price"  readonly>
+
+                <!-- Campo de entrada para el subtotal -->
+                <label for="subtotal">Subtotal:</label>
+                <input class="subtotal-input" type="number" name="subtotal"  readonly>
+            </div>
+        </div>
+
+        <button type="button" id="add-item">Agregar Elemento</button>
+        <button type="submit">Crear Pedido</button>
+    </form>
+    <script>
+        // Obtener referencias a los elementos del DOM
+        const productSelect = document.querySelector('.product-select');
+        const quantityInput = document.querySelector('.quantity-input');
+        const priceInput = document.querySelector('.price-input');
+        const subtotalInput = document.querySelector('.subtotal-input');
+
+        // Agregar un evento de cambio al campo de selección de productos
+        productSelect.addEventListener('change', () => {
+            // Obtener el precio del producto seleccionado
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            const selectedPrice = parseFloat(selectedOption.getAttribute('data-price'));
+
+            // Establecer el precio en el campo de entrada oculto
+            priceInput.value = selectedPrice.toFixed(2); // Formatear a dos decimales
+
+            // Calcular el subtotal y establecerlo en el campo de entrada de subtotal
+            const quantity = parseFloat(quantityInput.value);
+            if (!isNaN(quantity) && !isNaN(selectedPrice)) {
+                const subtotal = quantity * selectedPrice;
+                subtotalInput.value = subtotal.toFixed(2); // Formatear a dos decimales
+            } else {
+                subtotalInput.value = '0.00';
+            }
+        });
+
+        // Agregar un evento de cambio al campo de entrada de cantidad
+        quantityInput.addEventListener('change', () => {
+            // Obtener la cantidad y el precio como números
+            const quantity = parseFloat(quantityInput.value);
+            const selectedPrice = parseFloat(priceInput.value);
+
+            // Verificar si la cantidad y el precio son números válidos
+            if (!isNaN(quantity) && !isNaN(selectedPrice)) {
+                // Calcular el subtotal y establecerlo en el campo de entrada de subtotal
+                const subtotal = quantity * selectedPrice;
+                subtotalInput.value = subtotal.toFixed(2); // Formatear a dos decimales
+            } else {
+                // Si la cantidad o el precio no son válidos, establecer el subtotal en 0
+                subtotalInput.value = '0.00';
+            }
+        });
+
+        // Array para almacenar los elementos del pedido
+        const orderItems = [];
+
+        // Obtener referencias a los elementos del DOM
+        const addItemButton = document.getElementById('add-item');
+        const orderItemsContainer = document.getElementById('order-items');
+        const orderForm = document.getElementById('order-form');
+
+        addItemButton.addEventListener('click', () => {
+            // Obtener los valores de los campos del elemento del pedido
+            const productSelect = document.querySelector('.product-select');
+            const quantityInput = document.querySelector('.quantity-input');
+            const priceInput = document.querySelector('.price-input');
+            const subtotalInput = document.querySelector('.subtotal-input');
+
+            // Validar que los campos tengan valores válidos
+            const productId = productSelect.value;
+            const quantity = parseFloat(quantityInput.value);
+            const price = parseFloat(priceInput.value);
+            const subtotal = parseFloat(subtotalInput.value);
+
+            if (!productId || isNaN(quantity) || isNaN(price) || isNaN(subtotal)) {
+                alert('Por favor, complete los campos correctamente.');
+                return;
+            }
+
+            // Crear un objeto para representar el elemento del pedido
+            const orderItem = {
+                product_id: productId,
+                quantity: quantity,
+                price: price,
+                subtotal: subtotal
+            };
+
+            console.log(orderItem)
+
+            // Agregar el elemento del pedido al array
+            orderItems.push(orderItem);
+            console.log(orderItems)
+
+            // Limpiar los campos del elemento del pedido
+            productSelect.value = '';
+            quantityInput.value = '';
+            priceInput.value = '';
+            subtotalInput.value = '';
+
+            // Agregar el elemento del pedido al DOM para mostrarlo en la lista
+            const newItem = document.createElement('div');
+            newItem.classList.add('order-item');
+            newItem.innerHTML = `
+    <label>Producto: ${productId}</label>
+    <label>Cantidad: ${quantity}</label>
+    <label>Precio: ${price.toFixed(2)}</label>
+    <label>Subtotal: ${subtotal.toFixed(2)}</label>
+`;
+            orderItemsContainer.appendChild(newItem);
+        });
+
+        orderForm.addEventListener('submit', (event) => {
+            // Agregar los elementos del pedido como un campo oculto en el formulario
+            const orderItemsInput = document.createElement('input');
+            orderItemsInput.type = 'hidden';
+            orderItemsInput.name = 'order_items';
+            orderItemsInput.value = JSON.stringify(orderItems);
+            orderForm.appendChild(orderItemsInput);
+        });
+
+    </script>
+</body>
+
+</html>
